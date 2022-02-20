@@ -1,0 +1,37 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PowerShell Core: Interactive Session",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "pwsh",
+            "args": [
+                "-NoExit",
+                "-NoProfile",
+                "-Command",
+                "Import-Module ${workspaceFolder}/PSExpression/bin/Debug/netstandard2.0/PSExpression.dll",
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Windows PowerShell: Interactive Session",
+            "type": "clr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "powershell",
+            "args": [
+                "-NoExit",
+                "-NoProfile",
+                "-Command",
+                "Import-Module ${workspaceFolder}/PSExpression/bin/Debug/netstandard2.0/PSExpression.dll",
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "integratedTerminal"
+        }
+    ]
+}
