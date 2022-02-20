@@ -5,7 +5,9 @@ param
 
     [switch]$Clean,
 
-    [switch]$Import
+    [switch]$Import,
+
+    [switch]$Test
 )
 
 $ProjectPath = Join-Path $PSScriptRoot PSExpression
@@ -24,7 +26,16 @@ if (-not $?)
 
 $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1' | Copy-Item -Destination $OutPath
 
-if ($Import)
+if ($Import -or $Test)
 {
     $OutPath | Join-Path -ChildPath 'PSExpression.psd1' | Import-Module -Global -Force -ErrorAction Stop
+}
+
+if ($Test)
+{
+    $TestPath = $PSScriptRoot | Join-Path -ChildPath Tests
+
+    Import-Module Pester -MinimumVersion 5.3.1 -Global -ErrorAction Stop
+
+    Invoke-Pester $TestPath -Output Detailed
 }
