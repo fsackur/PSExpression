@@ -1,12 +1,16 @@
 [CmdletBinding()]
 param
 (
-    [string]$OutPath = (Join-Path $PSScriptRoot 'bin')
+    [string]$OutPath = (Join-Path $PSScriptRoot 'bin'),
+
+    [switch]$Clean,
+
+    [switch]$Import
 )
 
 $ProjectPath = Join-Path $PSScriptRoot PSExpression
 
-if (Test-Path $OutPath)
+if ($Clean -and (Test-Path $OutPath))
 {
     Remove-Item $OutPath -Recurse -Force -ErrorAction Stop
 }
@@ -19,3 +23,8 @@ if (-not $?)
 }
 
 $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1' | Copy-Item -Destination $OutPath
+
+if ($Import)
+{
+    $OutPath | Join-Path -ChildPath 'PSExpression.psd1' | Import-Module -Global -Force -ErrorAction Stop
+}
