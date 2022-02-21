@@ -29,6 +29,19 @@ namespace PSExpression
 
         protected override void ProcessRecord()
         {
+            string output = InputObject switch
+            {
+                null => "$null",
+
+                var i when i.GetType().IsPrimitive => i.ToString(),
+
+                _ => throw new ArgumentException(
+                    $"Cannot express value '{InputObject.ToString()}' of type '{InputObject.GetType().FullName}' as a PowerShell expression.",
+                    nameof(InputObject)
+                )
+            };
+
+            WriteObject(output);
         }
     }
 }
