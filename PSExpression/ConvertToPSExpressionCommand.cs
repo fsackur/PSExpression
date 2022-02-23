@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Management.Automation;
 
 namespace PSExpression
@@ -32,32 +34,34 @@ namespace PSExpression
             nameof(InputObject)
         );
 
+        private string ConvertObject(object inputObject) => inputObject switch
+        {
+            null => "$null",
+
+            bool i => i ? "$true" : "$false",
+
+            float i when float.IsNaN(i) || float.IsInfinity(i) => InexpressibleArgument(),
+
+            double i when double.IsNaN(i) || double.IsInfinity(i) => InexpressibleArgument(),
+
+            var i when i.GetType().IsPrimitive => i.ToString(),
+
+            string i => $"'{i}'",
+
+            DateTime i => $"[datetime]'{i.ToString("u")}'",
+
+            Version i => $"[version]'{i}'",
+
+            Enum i => $"'{i}'",
+
+            ScriptBlock i => $"{{{i.ToString()}}}",
+
+            _ => InexpressibleArgument()
+        };
+
         protected override void ProcessRecord()
         {
-            string output = InputObject switch
-            {
-                null => "$null",
-
-                bool i => i ? "$true" : "$false",
-
-                float i when float.IsNaN(i) || float.IsInfinity(i) => InexpressibleArgument(),
-
-                double i when double.IsNaN(i) || double.IsInfinity(i) => InexpressibleArgument(),
-
-                var i when i.GetType().IsPrimitive => i.ToString(),
-
-                string i => $"'{i}'",
-
-                DateTime i => $"[datetime]'{i.ToString("u")}'",
-
-                Version i => $"[version]'{i}'",
-
-                Enum i => $"'{i}'",
-
-                ScriptBlock i => $"{{{i.ToString()}}}",
-
-                _ => InexpressibleArgument()
-            };
+            string output = ConvertObject(InputObject);
 
             WriteObject(output);
         }
