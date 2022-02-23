@@ -56,7 +56,8 @@ BeforeDiscovery {
         ("Linux`nmultiline", "'Linux`nmultiline'"),
         ([datetime]::new(1999, 12, 31, 23, 59, 59, 999, 'Utc'), "[datetime]'1999-12-31 23:59:59Z'"),
         ([version]'1.2.3.4', "[version]'1.2.3.4'"),
-        ([DateTimeKind]::Utc, "'Utc'")
+        ([DateTimeKind]::Utc, "'Utc'"),
+        ({Get-ChildItem foo}, '{Get-ChildItem foo}')
     ) | ForEach-Object {
         @{
             Name        = $_[0].ToString()

@@ -54,6 +54,8 @@ namespace PSExpression
 
                 Enum i => $"'{i}'",
 
+                ScriptBlock i => $"{{{i.ToString()}}}",
+
                 _ => InexpressibleArgument()
             };
 
