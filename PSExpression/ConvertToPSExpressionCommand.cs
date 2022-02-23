@@ -27,18 +27,24 @@ namespace PSExpression
         public int Depth { get; set; }
         #endregion Parameters
 
+        private string InexpressibleArgument() => throw new ArgumentException(
+            $"Cannot express value '{InputObject.ToString()}' of type {InputObject.GetType().FullName} as a PowerShell expression.",
+            nameof(InputObject)
+        );
+
         protected override void ProcessRecord()
         {
             string output = InputObject switch
             {
                 null => "$null",
 
+                float i when float.IsNaN(i) || float.IsInfinity(i) => InexpressibleArgument(),
+
+                double i when double.IsNaN(i) || double.IsInfinity(i) => InexpressibleArgument(),
+
                 var i when i.GetType().IsPrimitive => i.ToString(),
 
-                _ => throw new ArgumentException(
-                    $"Cannot express value '{InputObject.ToString()}' of type '{InputObject.GetType().FullName}' as a PowerShell expression.",
-                    nameof(InputObject)
-                )
+                _ => InexpressibleArgument()
             };
 
             WriteObject(output);

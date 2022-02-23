@@ -29,6 +29,20 @@ BeforeDiscovery {
             Expected    = if ($null -eq $InputObject) {$_} else {$InputObject.ToString()}
         }
     }
+
+    $PrimitiveErrorCases = (
+        ('[float]::NaN', "'NaN' of type System.Single"),
+        ('[double]::NaN', "'NaN' of type System.Double"),
+        ('[float]::NegativeInfinity', "value '-∞' of type System.Single"),
+        ('[double]::PositiveInfinity', "value '∞' of type System.Double")
+    ) | ForEach-Object {
+        $InputObject = Invoke-Expression $_[0]
+        @{
+            Name        = $_[0]
+            InputObject = $InputObject
+            Expected    = $_[1]
+        }
+    }
 }
 
 
@@ -41,6 +55,11 @@ Describe "ConvertTo-PSExpression" {
             $Output = ConvertTo-PSExpression $InputObject
 
             $Output | Should -BeExactly $Expected
+        }
+
+        It "Throws on <Name>" -ForEach $PrimitiveErrorCases {
+
+            {ConvertTo-PSExpression $InputObject} | Should -Throw *$Expected*
         }
     }
 }
