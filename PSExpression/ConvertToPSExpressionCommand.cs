@@ -44,6 +44,14 @@ namespace PSExpression
 
                 var i when i.GetType().IsPrimitive => i.ToString(),
 
+                string i => $"'{i}'",
+
+                DateTime i => $"[datetime]'{i.ToString("u")}'",
+
+                Version i => $"[version]'{i}'",
+
+                Enum i => $"'{i}'",
+
                 _ => InexpressibleArgument()
             };
 
