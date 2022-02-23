@@ -44,6 +44,39 @@ BeforeDiscovery {
         @{Name = '[DateTimeKind]::Utc';     InputObject = [DateTimeKind]::Utc;      Expected = "'Utc'"},
         @{Name = '{Get-ChildItem foo}';     InputObject = {Get-ChildItem foo};      Expected = '{Get-ChildItem foo}'}
     )
+
+    $ArrayTestCases = (
+        @{
+            Name        = '@()'
+            InputObject = @()
+            Expected    = '@()'
+        },
+        @{
+            Name        = '@(1)'
+            InputObject = @(1)
+            Expected    = '@(1)'
+        },
+        @{
+            Name        = '@($null)'
+            InputObject = @($null)
+            Expected    = '@($null)'
+        },
+        @{
+            Name        = '@(1, 2, 3)'
+            InputObject = @(1, 2, 3)
+            Expected    = '@(1, 2, 3)'
+        },
+        @{
+            Name        = '[ArrayList](1, 2, 3)'
+            InputObject = [Collections.ArrayList]::new((1, 2, 3))
+            Expected    = '@(1, 2, 3)'
+        },
+        @{
+            Name        = "[List[string]]('a', 'b', 'c')"
+            InputObject = [Collections.Generic.List[string]]::new([string[]]('a', 'b', 'c'))
+            Expected    = "@('a', 'b', 'c')"
+        }
+    )
 }
 
 
@@ -67,6 +100,16 @@ Describe "ConvertTo-PSExpression" {
     Context "Objects" {
 
         It "Serializes <Name> to <Expected>" -ForEach $ObjectTestCases {
+
+            $Output = ConvertTo-PSExpression $InputObject
+
+            $Output | Should -BeExactly $Expected
+        }
+    }
+
+    Context "Collections" {
+
+        It "Serializes <Name> to <Expected>" -ForEach $ArrayTestCases {
 
             $Output = ConvertTo-PSExpression $InputObject
 

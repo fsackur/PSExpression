@@ -56,8 +56,21 @@ namespace PSExpression
 
             ScriptBlock i => $"{{{i.ToString()}}}",
 
+            IList i => $"@({ConvertList(i)})",
+
             _ => InexpressibleArgument()
         };
+
+        private string ConvertList(IList inputObject)
+        {
+            var elementStrings = new List<string>();
+            foreach (var e in inputObject)
+            {
+                var elementString = ConvertObject(e);
+                elementStrings.Add(elementString);
+            }
+            return string.Join(", ", elementStrings);
+        }
 
         protected override void ProcessRecord()
         {
