@@ -43,6 +43,21 @@ BeforeDiscovery {
             Expected    = $_[1]
         }
     }
+
+    $ObjectTestCases = @(
+        ('singleline', "'singleline'"),
+        ("Windows`r`nmultiline", "'Windows`r`nmultiline'"),
+        ("Linux`nmultiline", "'Linux`nmultiline'"),
+        ([datetime]::new(1999, 12, 31, 23, 59, 59, 999, 'Utc'), "[datetime]'1999-12-31 23:59:59Z'"),
+        ([version]'1.2.3.4', "[version]'1.2.3.4'"),
+        ([DateTimeKind]::Utc, "'Utc'")
+    ) | ForEach-Object {
+        @{
+            Name        = $_[0].ToString()
+            InputObject = $_[0]
+            Expected    = $_[1]
+        }
+    }
 }
 
 
@@ -50,7 +65,7 @@ Describe "ConvertTo-PSExpression" {
 
     Context "Primitives" {
 
-        It "Serializes <Name> to '<Expected>'" -ForEach $PrimitiveTestCases {
+        It "Serializes <Name> to <Expected>" -ForEach $PrimitiveTestCases {
 
             $Output = ConvertTo-PSExpression $InputObject
 
@@ -60,6 +75,16 @@ Describe "ConvertTo-PSExpression" {
         It "Throws on <Name>" -ForEach $PrimitiveErrorCases {
 
             {ConvertTo-PSExpression $InputObject} | Should -Throw *$Expected*
+        }
+    }
+
+    Context "Objects" {
+
+        It "Serializes <Name> to <Expected>" -ForEach $ObjectTestCases {
+
+            $Output = ConvertTo-PSExpression $InputObject
+
+            $Output | Should -BeExactly $Expected
         }
     }
 }
