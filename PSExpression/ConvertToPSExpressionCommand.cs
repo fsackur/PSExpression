@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Management.Automation;
+using System.Text.RegularExpressions;
 
 namespace PSExpression
 {
@@ -58,6 +60,10 @@ namespace PSExpression
 
             IList i => $"@({ConvertList(i)})",
 
+            IOrderedDictionary i => $"[ordered]@{{{ConvertDictionary(i)}}}",
+
+            IDictionary i => $"@{{{ConvertDictionary(i)}}}",
+
             _ => InexpressibleArgument()
         };
 
@@ -70,6 +76,27 @@ namespace PSExpression
                 elementStrings.Add(elementString);
             }
             return string.Join(", ", elementStrings);
+        }
+
+        private string ConvertDictionary(IDictionary inputObject)
+        {
+            var safeKeyRegex = new Regex("^[a-z][a-z0-9]*$", RegexOptions.IgnoreCase);
+
+            var elementStrings = new List<string>();
+            foreach (DictionaryEntry kvp in inputObject)
+            {
+                var key = ConvertObject(kvp.Key);
+                var value = ConvertObject(kvp.Value);
+
+                var unquotedKey = key.Length > 1 && key[0] == '\'' && key[key.Length - 1] == '\'' ?
+                    key.Substring(1, key.Length - 2) :
+                    key;
+                key = safeKeyRegex.IsMatch(unquotedKey) ? unquotedKey : $"'{unquotedKey}'";
+
+                var elementString = $"{key} = {value}";
+                elementStrings.Add(elementString);
+            }
+            return string.Join("; ", elementStrings);
         }
 
         protected override void ProcessRecord()

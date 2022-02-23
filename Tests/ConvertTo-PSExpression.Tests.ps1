@@ -45,7 +45,7 @@ BeforeDiscovery {
         @{Name = '{Get-ChildItem foo}';     InputObject = {Get-ChildItem foo};      Expected = '{Get-ChildItem foo}'}
     )
 
-    $ArrayTestCases = (
+    $CollectionTestCases = (
         @{
             Name        = '@()'
             InputObject = @()
@@ -75,6 +75,41 @@ BeforeDiscovery {
             Name        = "[List[string]]('a', 'b', 'c')"
             InputObject = [Collections.Generic.List[string]]::new([string[]]('a', 'b', 'c'))
             Expected    = "@('a', 'b', 'c')"
+        },
+        @{
+            Name        = '@{}'
+            InputObject = @{}
+            Expected    = '@{}'
+        },
+        @{
+            Name        = '@{a=1}'
+            InputObject = @{a=1}
+            Expected    = '@{a = 1}'
+        },
+        @{
+            Name        = "@{'a-b'=1}"
+            InputObject = @{'a-b'=1}
+            Expected    = "@{'a-b' = 1}"
+        },
+        @{
+            Name        = '@{a=1;b=2}'
+            InputObject = @{a=1;b=2}
+            Expected    = '@{a = 1; b = 2}', '@{b = 2; a = 1}'  # because order is not guaranteed
+        },
+        @{
+            Name        = '[ordered]@{a=1;b=2}'
+            InputObject = [ordered]@{a=1;b=2}
+            Expected    = '[ordered]@{a = 1; b = 2}'
+        },
+        @{
+            Name        = '[Dictionary[string, int]]@{a = 1; b = 2}'
+            InputObject = $($d = [Collections.Generic.Dictionary[string, int]]::new(); $d.Add('a', 1); $d.Add('b', 2); $d)
+            Expected    = '@{a = 1; b = 2}', '@{b = 2; a = 1}'
+        },
+        @{
+            Name        = "[Dictionary[int, string]]@{1 = 'a'; 2 = 'b'}"
+            InputObject = $($d = [Collections.Generic.Dictionary[int, string]]::new(); $d.Add('1', 'a'); $d.Add('2', 'b'); $d)
+            Expected    = "@{'1' = 'a'; '2' = 'b'}", "@{'2' = 'b'; '1' = 'a'}"
         }
     )
 }
@@ -109,11 +144,18 @@ Describe "ConvertTo-PSExpression" {
 
     Context "Collections" {
 
-        It "Serializes <Name> to <Expected>" -ForEach $ArrayTestCases {
+        It "Serializes <Name> to <Expected | select -First 1>" -ForEach $CollectionTestCases {
 
             $Output = ConvertTo-PSExpression $InputObject
 
-            $Output | Should -BeExactly $Expected
+            if ($Expected.Count -gt 1)
+            {
+                $Output | Should -BeIn $Expected
+            }
+            else
+            {
+                $Output | Should -BeExactly $Expected
+            }
         }
     }
 }
