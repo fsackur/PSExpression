@@ -3,6 +3,8 @@ BeforeDiscovery {
 
     $PrimitiveTestCases = @(
         '$null',
+        @{Name = '$true';  InputObject = $true;  Expected = '$true'},
+        @{Name = '$false'; InputObject = $false; Expected = '$false'}
         '0',
         '1',
         '-1',
@@ -22,6 +24,10 @@ BeforeDiscovery {
         '[double]::MaxValue',
         "[char]'c'"
     ) | ForEach-Object {
+        if ($_ -is [hashtable])
+        {
+            return $_
+        }
         $InputObject = Invoke-Expression $_
         @{
             Name        = $_

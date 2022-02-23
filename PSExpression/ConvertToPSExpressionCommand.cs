@@ -38,6 +38,8 @@ namespace PSExpression
             {
                 null => "$null",
 
+                bool i => i ? "$true" : "$false",
+
                 float i when float.IsNaN(i) || float.IsInfinity(i) => InexpressibleArgument(),
 
                 double i when double.IsNaN(i) || double.IsInfinity(i) => InexpressibleArgument(),
