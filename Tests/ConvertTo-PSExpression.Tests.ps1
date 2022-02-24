@@ -77,6 +77,16 @@ BeforeDiscovery {
             Expected    = "@('a', 'b', 'c')"
         },
         @{
+            Name        = '[Queue]::new((1, 2, 3))'
+            InputObject = [Collections.Queue]::new((1, 2, 3))
+            Expected    = '@(1, 2, 3)'
+        },
+        @{
+            Name        = "[HashSet[string]]('a', 'b', 'c')"
+            InputObject = [Collections.Generic.HashSet[string]]::new([string[]]('a', 'b', 'c'))
+            Expected    = "@('a', 'b', 'c')"
+        },
+        @{
             Name        = '@{}'
             InputObject = @{}
             Expected    = '@{}'

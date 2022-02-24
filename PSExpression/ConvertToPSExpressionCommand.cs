@@ -58,16 +58,16 @@ namespace PSExpression
 
             ScriptBlock i => $"{{{i.ToString()}}}",
 
-            IList i => $"@({ConvertList(i)})",
-
             IOrderedDictionary i => $"[ordered]@{{{ConvertDictionary(i)}}}",
 
             IDictionary i => $"@{{{ConvertDictionary(i)}}}",
 
+            IEnumerable i => $"@({ConvertEnumerable(i)})",
+
             _ => InexpressibleArgument()
         };
 
-        private string ConvertList(IList inputObject)
+        private string ConvertEnumerable(IEnumerable inputObject)
         {
             var elementStrings = new List<string>();
             foreach (var e in inputObject)
