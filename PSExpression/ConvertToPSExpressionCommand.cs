@@ -64,8 +64,20 @@ namespace PSExpression
 
             IEnumerable i => $"@({ConvertEnumerable(i)})",
 
+            PSObject i => $"[pscustomobject]@{{{ConvertPSObject(i)}}}",
+
             _ => InexpressibleArgument()
         };
+
+        private string ConvertPSObject(PSObject pso)
+        {
+            var dict = new OrderedDictionary();
+            foreach (var p in pso.Properties)
+            {
+                dict.Add(p.Name, p.Value);
+            }
+            return ConvertDictionary(dict);
+        }
 
         private string ConvertEnumerable(IEnumerable inputObject)
         {

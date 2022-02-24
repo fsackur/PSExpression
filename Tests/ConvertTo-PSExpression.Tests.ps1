@@ -35,7 +35,7 @@ BeforeDiscovery {
     )
 
     $PartyTime = [datetime]::new(1999, 12, 31, 23, 59, 59, 999, 'Utc')
-    $ObjectTestCases = @(
+    $ValueObjectTestCases = @(
         @{Name = 'singleline';              InputObject = 'singleline';             Expected = "'singleline'"},
         @{Name = "Windows`r`nmultiline";    InputObject = "Windows`r`nmultiline";   Expected = "'Windows`r`nmultiline'"},
         @{Name = "Linux`nmultiline";        InputObject = "Linux`nmultiline";       Expected = "'Linux`nmultiline'"},
@@ -122,6 +122,10 @@ BeforeDiscovery {
             Expected    = "@{'1' = 'a'; '2' = 'b'}", "@{'2' = 'b'; '1' = 'a'}"
         }
     )
+
+    $StructuredObjectTestCases = (
+        @{Name = '[psobject]@{a=1; b=2}';   InputObject = [pscustomobject]@{a=1; b=2};      Expected = '[pscustomobject]@{a = 1; b = 2}'}
+    )
 }
 
 
@@ -142,9 +146,9 @@ Describe "ConvertTo-PSExpression" {
         }
     }
 
-    Context "Objects" {
+    Context "ValueObjects" {
 
-        It "Serializes <Name> to <Expected>" -ForEach $ObjectTestCases {
+        It "Serializes <Name> to <Expected>" -ForEach $ValueObjectTestCases {
 
             $Output = ConvertTo-PSExpression $InputObject
 
@@ -166,6 +170,16 @@ Describe "ConvertTo-PSExpression" {
             {
                 $Output | Should -BeExactly $Expected
             }
+        }
+    }
+
+    Context "StructuredObjects" {
+
+        It "Serializes <Name> to <Expected>" -ForEach $StructuredObjectTestCases {
+
+            $Output = ConvertTo-PSExpression $InputObject
+
+            $Output | Should -BeExactly $Expected
         }
     }
 }
