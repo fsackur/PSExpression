@@ -124,7 +124,24 @@ BeforeDiscovery {
     )
 
     $StructuredObjectTestCases = (
-        @{Name = '[psobject]@{a=1; b=2}';   InputObject = [pscustomobject]@{a=1; b=2};      Expected = '[pscustomobject]@{a = 1; b = 2}'}
+        @{
+            Name        = '[psobject]@{a=1; b=2}'
+            InputObject = [pscustomobject]@{a=1; b=2}
+            Depth       = 2
+            Expected    = '[pscustomobject]@{a = 1; b = 2}'
+        },
+        @{
+            Name        = '[psobject]@{a=1; b=[psobject]@{c=3; d=[psobject]@{e=5; f=[psobject]@{g=7; h=8}}}}'
+            InputObject = [pscustomobject]@{a=1; b=[pscustomobject]@{c=3; d=[pscustomobject]@{e=5; f=[pscustomobject]@{g=7; h=8}}}}
+            Depth       = 2
+            Expected    = "[pscustomobject]@{a = 1; b = [pscustomobject]@{c = 3; d = 'System.Management.Automation.PSObject'}}"
+        },
+        @{
+            Name        = '[psobject]@{a=1; b=[psobject]@{c=3; d=[psobject]@{e=5; f=[psobject]@{g=7; h=8}}}}'
+            InputObject = [pscustomobject]@{a=1; b=[pscustomobject]@{c=3; d=[pscustomobject]@{e=5; f=[pscustomobject]@{g=7; h=8}}}}
+            Depth       = 4
+            Expected    = '[pscustomobject]@{a = 1; b = [pscustomobject]@{c = 3; d = [pscustomobject]@{e = 5; f = [pscustomobject]@{g = 7; h = 8}}}}'
+        }
     )
 }
 
@@ -177,7 +194,7 @@ Describe "ConvertTo-PSExpression" {
 
         It "Serializes <Name> to <Expected>" -ForEach $StructuredObjectTestCases {
 
-            $Output = ConvertTo-PSExpression $InputObject
+            $Output = ConvertTo-PSExpression $InputObject -Depth $Depth
 
             $Output | Should -BeExactly $Expected
         }

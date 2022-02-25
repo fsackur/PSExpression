@@ -28,7 +28,12 @@ namespace PSExpression
         /// </summary>
         [Parameter()]
         [ValidateRange(0, 100)]
-        public int Depth { get; set; }
+        public int Depth
+        {
+            get { return _depth; }
+            set { _depth = value; }
+        }
+        private int _depth = 2;
         #endregion Parameters
 
         private string InexpressibleArgument() => throw new ArgumentException(
@@ -36,7 +41,7 @@ namespace PSExpression
             nameof(InputObject)
         );
 
-        private string ConvertObject(object inputObject) => inputObject switch
+        private string ConvertObject(object inputObject, int depth) => inputObject switch
         {
             null => "$null",
 
@@ -58,47 +63,50 @@ namespace PSExpression
 
             ScriptBlock i => $"{{{i.ToString()}}}",
 
-            IOrderedDictionary i => $"[ordered]@{{{ConvertDictionary(i)}}}",
+            _ => depth == 0 ? $"'{inputObject.GetType().ToString()}'" : inputObject switch {
 
-            IDictionary i => $"@{{{ConvertDictionary(i)}}}",
+                IOrderedDictionary i => $"[ordered]@{{{ConvertDictionary(i, depth)}}}",
 
-            IEnumerable i => $"@({ConvertEnumerable(i)})",
+                IDictionary i => $"@{{{ConvertDictionary(i, depth)}}}",
 
-            PSObject i => $"[pscustomobject]@{{{ConvertPSObject(i)}}}",
+                IEnumerable i => $"@({ConvertEnumerable(i, depth)})",
 
-            _ => InexpressibleArgument()
+                PSObject i => $"[pscustomobject]@{{{ConvertPSObject(i, depth)}}}",
+
+                _ => InexpressibleArgument()
+            }
         };
 
-        private string ConvertPSObject(PSObject pso)
+        private string ConvertPSObject(PSObject pso, int depth)
         {
             var dict = new OrderedDictionary();
             foreach (var p in pso.Properties)
             {
                 dict.Add(p.Name, p.Value);
             }
-            return ConvertDictionary(dict);
+            return ConvertDictionary(dict, depth);
         }
 
-        private string ConvertEnumerable(IEnumerable inputObject)
+        private string ConvertEnumerable(IEnumerable inputObject, int depth)
         {
             var elementStrings = new List<string>();
             foreach (var e in inputObject)
             {
-                var elementString = ConvertObject(e);
+                var elementString = ConvertObject(e, depth - 1);
                 elementStrings.Add(elementString);
             }
             return string.Join(", ", elementStrings);
         }
 
-        private string ConvertDictionary(IDictionary inputObject)
+        private string ConvertDictionary(IDictionary inputObject, int depth)
         {
             var safeKeyRegex = new Regex("^[a-z][a-z0-9]*$", RegexOptions.IgnoreCase);
 
             var elementStrings = new List<string>();
             foreach (DictionaryEntry kvp in inputObject)
             {
-                var key = ConvertObject(kvp.Key);
-                var value = ConvertObject(kvp.Value);
+                var key = ConvertObject(kvp.Key, depth);
+                var value = ConvertObject(kvp.Value, depth - 1);
 
                 var unquotedKey = key.Length > 1 && key[0] == '\'' && key[key.Length - 1] == '\'' ?
                     key.Substring(1, key.Length - 2) :
@@ -113,7 +121,7 @@ namespace PSExpression
 
         protected override void ProcessRecord()
         {
-            string output = ConvertObject(InputObject);
+            string output = ConvertObject(InputObject, Depth);
 
             WriteObject(output);
         }
