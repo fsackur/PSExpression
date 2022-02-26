@@ -40,7 +40,7 @@ if ($InstallDependencies)
     $Dependencies | % {
         if (-not (Import-Module @_ -Global -PassThru -ErrorAction Ignore))
         {
-            Install-Module -Force -AllowClobber -Repository PSGallery @_ -ErrorAction Stop
+            Install-Module -Force -AllowClobber -Repository PSGallery @_ -ErrorAction Stop -SkipPublisherCheck
         }
     }
 }
