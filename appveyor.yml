@@ -2,6 +2,9 @@ version: 0.0.{build}
 
 image: Visual Studio 2022
 
+cache:
+- C:\Users\appveyor\Documents\PowerShell\Modules\Pester
+
 install:
 - pwsh: ./build.ps1 -InstallDependencies
 
