@@ -1,0 +1,12 @@
+version: 0.0.{build}
+
+image: Visual Studio 2022
+
+install:
+- pwsh: ./build.ps1 -InstallDependencies
+
+build_script:
+- pwsh: ./build.ps1 -Build
+
+test_script:
+- pwsh: ./build.ps1 -Test
