@@ -9,4 +9,17 @@ build_script:
 - pwsh: ./build.ps1 -Build
 
 test_script:
-- pwsh: ./build.ps1 -Test -TestSettings @{OutputFormat = 'NUnitXml'} -UploadTestResultUri https://ci.appveyor.com/api/testresults/nunit/$env:APPVEYOR_JOB_ID
+- pwsh: |
+    ./build.ps1 -Test -TestConfig @{
+        Run = @{
+            Throw = $true
+        }
+        TestResult = @{
+            OutputPath   = 'TestResults.xml'
+            OutputFormat = 'NUnitXml'
+        }
+        Should = @{
+            # Don't stop on first error
+            ErrorAction = 'Continue'
+        }
+    } -UploadTestResultUri https://ci.appveyor.com/api/testresults/nunit/$env:APPVEYOR_JOB_ID

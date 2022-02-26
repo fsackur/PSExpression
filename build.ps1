@@ -13,7 +13,14 @@ param
 
     [switch]$Test,
 
-    [hashtable]$TestSettings = @{},
+    [hashtable]$TestConfig = @{
+        Output = @{
+            Verbosity = 'Detailed'
+        }
+        Should = @{
+            ErrorAction = 'Continue'
+        }
+    },
 
     [uri]$UploadTestResultUri
 )
@@ -67,19 +74,26 @@ if ($Test)
 {
     $Dependencies | ? Name -eq 'Pester' | % {Import-Module @_ -Global -ErrorAction Stop}
 
-    $TestSettings.OutputFile = '.\TestResults.xml'
-    $TestResult = Invoke-Pester -PassThru @TestSettings
+    [object]$TestConfig = New-PesterConfiguration $TestConfig
+    $TestConfig.Run.Path = $TestPath
 
-    if ($UploadTestResultUri)
+    $TestResultPath = $TestConfig.TestResult.OutputPath.Value
+    if ($TestResultPath)
     {
-        [Net.WebClient]::new().UploadFile(
-            $UploadTestResultUri,
-            ($TestSettings.OutputFile | Resolve-Path)
-        )
+        $TestConfig.TestResult.Enabled = $true
+        $TestResultPath = [IO.Path]::GetFullPath($TestResultPath, $PSScriptRoot)
+        $TestConfig.TestResult.OutputPath = $TestResultPath
+        Remove-Item -Recurse -Force $TestResultPath -ErrorAction Ignore
     }
 
-    if ($TestResult.FailedCount -gt 0)
+    Invoke-Pester -Configuration @TestConfig
+
+    if ($UploadTestResultUri -and $TestResultPath)
     {
-        throw "Failed test count: $($TestResult.FailedCount)"
+        "Uploading $($TestResultPath | Resolve-Path) to $UploadTestResultUri..."
+        [Net.WebClient]::new().UploadFile(
+            $UploadTestResultUri,
+            $TestResultPath
+        )
     }
 }
