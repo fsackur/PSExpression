@@ -11,11 +11,15 @@ param
 
     [switch]$Import,
 
-    [switch]$Test
+    [switch]$Test,
+
+    [hashtable]$TestSettings = @{},
+
+    [uri]$UploadTestResultUri
 )
 
-$ProjectPath = Join-Path $PSScriptRoot PSExpression
-
+$ProjectPath  = $PSScriptRoot | Join-Path -ChildPath PSExpression
+$TestPath     = $PSScriptRoot | Join-Path -ChildPath Tests
 $Dependencies = (
     @{
         Name = 'Pester'
@@ -61,9 +65,21 @@ if ($Import -or $Test)
 
 if ($Test)
 {
-    $TestPath = $PSScriptRoot | Join-Path -ChildPath Tests
-
     $Dependencies | ? Name -eq 'Pester' | % {Import-Module @_ -Global -ErrorAction Stop}
 
-    Invoke-Pester $TestPath -Output Detailed
+    $TestSettings.OutputFile = '.\TestResults.xml'
+    $TestResult = Invoke-Pester -PassThru @TestSettings
+
+    if ($UploadTestResultUri)
+    {
+        [Net.WebClient]::new().UploadFile(
+            $UploadTestResultUri,
+            ($TestSettings.OutputFile | Resolve-Path)
+        )
+    }
+
+    if ($TestResult.FailedCount -gt 0)
+    {
+        throw "Failed test count: $($TestResult.FailedCount)"
+    }
 }
