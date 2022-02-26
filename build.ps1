@@ -5,6 +5,10 @@ param
 
     [switch]$Clean,
 
+    [switch]$InstallDependencies,
+
+    [switch]$Build,
+
     [switch]$Import,
 
     [switch]$Test
@@ -12,30 +16,54 @@ param
 
 $ProjectPath = Join-Path $PSScriptRoot PSExpression
 
+$Dependencies = (
+    @{
+        Name = 'Pester'
+        MinimumVersion = '5.3.1'
+    }
+)
+
+
 if ($Clean -and (Test-Path $OutPath))
 {
     Remove-Item $OutPath -Recurse -Force -ErrorAction Stop
 }
 New-Item $OutPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
-dotnet build $ProjectPath -o $OutPath /property:GenerateFullPaths=true
-if (-not $?)
+
+if ($InstallDependencies)
 {
-    return
+    $Dependencies | % {
+        if (-not (Import-Module @_ -Global -PassThru -ErrorAction Ignore))
+        {
+            Install-Module -Force -AllowClobber -Repository PSGallery @_ -ErrorAction Stop
+        }
+    }
 }
 
-$ProjectPath | Join-Path -ChildPath 'PSExpression.psd1' | Copy-Item -Destination $OutPath
+
+if ($Build)
+{
+    dotnet build $ProjectPath -o $OutPath /property:GenerateFullPaths=true
+    if (-not $?)
+    {
+        throw "dotnet build failed with exit code $LASTEXITCODE"
+    }
+    $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1' | Copy-Item -Destination $OutPath
+}
+
 
 if ($Import -or $Test)
 {
     $OutPath | Join-Path -ChildPath 'PSExpression.psd1' | Import-Module -Global -Force -ErrorAction Stop
 }
 
+
 if ($Test)
 {
     $TestPath = $PSScriptRoot | Join-Path -ChildPath Tests
 
-    Import-Module Pester -MinimumVersion 5.3.1 -Global -ErrorAction Stop
+    $Dependencies | ? Name -eq 'Pester' | % {Import-Module @_ -Global -ErrorAction Stop}
 
     Invoke-Pester $TestPath -Output Detailed
 }
