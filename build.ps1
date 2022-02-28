@@ -1,13 +1,17 @@
 [CmdletBinding()]
 param
 (
-    [string]$OutPath = (Join-Path $PSScriptRoot 'bin'),
+    [string]$BinPath = (Join-Path $PSScriptRoot 'bin'),
+
+    [string]$Destination = (Join-Path $PSScriptRoot 'Build'),
 
     [switch]$Clean,
 
     [switch]$InstallDependencies,
 
     [switch]$Build,
+
+    [switch]$Package,
 
     [switch]$Import,
 
@@ -31,15 +35,29 @@ $Dependencies = (
     @{
         Name = 'Pester'
         MinimumVersion = '5.3.1'
+    },
+    @{
+        Name = 'PowerShellGet'
+        MinimumVersion = '3.0.0'
     }
 )
 
 
-if ($Clean -and (Test-Path $OutPath))
+if ($Clean)
 {
-    Remove-Item $OutPath -Recurse -Force -ErrorAction Stop
+    if (Test-Path $BinPath)
+    {
+        Remove-Item $BinPath -Recurse -Force -ErrorAction Stop
+    }
+
+    if (Test-Path $Destination)
+    {
+        Remove-Item $Destination -Recurse -Force -ErrorAction Stop
+    }
 }
-New-Item $OutPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+$ModuleBase = $Destination | Join-Path -ChildPath 'PSExpression'
+New-Item $BinPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+New-Item $ModuleBase -ItemType Directory -Force -ErrorAction Stop | Out-Null
 
 
 if ($InstallDependencies)
@@ -47,8 +65,15 @@ if ($InstallDependencies)
     $Dependencies | % {
         if (-not (Import-Module @_ -Global -PassThru -ErrorAction Ignore))
         {
+            $Params =@{
+                Force              = $true
+                AllowClobber       = $true
+                Repository         = 'PSGallery'
+                SkipPublisherCheck = $true
+                AllowPrerelease    = $_.Name -eq 'PowerShellGet'
+            }
             "Installing $($_.Name)..."
-            Install-Module -Force -AllowClobber -Repository PSGallery @_ -ErrorAction Stop -SkipPublisherCheck
+            Install-Module @_ @Params -ErrorAction Stop
         }
     }
 }
@@ -56,18 +81,21 @@ if ($InstallDependencies)
 
 if ($Build)
 {
-    dotnet build $ProjectPath -o $OutPath /property:GenerateFullPaths=true
+    dotnet build $ProjectPath -o $BinPath /property:GenerateFullPaths=true
     if (-not $?)
     {
         throw "dotnet build failed with exit code $LASTEXITCODE"
     }
-    $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1' | Copy-Item -Destination $OutPath
+
+    $ManifestPath = $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1'
+    $ManifestPath | Copy-Item -Destination $ModuleBase
+    $BinPath | Join-Path -ChildPath 'PSExpression.dll' | Copy-Item -Destination $ModuleBase
 }
 
 
 if ($Import -or $Test)
 {
-    $OutPath | Join-Path -ChildPath 'PSExpression.psd1' | Import-Module -Global -Force -ErrorAction Stop
+    $ModuleBase | Import-Module -Global -Force -ErrorAction Stop
 }
 
 
@@ -96,5 +124,23 @@ if ($Test)
             $UploadTestResultUri,
             $TestResultPath
         )
+    }
+}
+
+if ($Package)
+{
+    $Dependencies | ? Name -eq 'PowerShellGet' | % {Import-Module @_ -Global -ErrorAction Stop}
+
+    if (-not (Get-PSResourceRepository 'PSExpression' -ErrorAction Ignore))
+    {
+        Register-PSResourceRepository -Name 'PSExpression' -URL $Destination -Trusted
+    }
+    try
+    {
+        Publish-PSResource -Path $ModuleBase -Repository 'PSExpression'
+    }
+    finally
+    {
+        Unregister-PSResourceRepository -Name 'PSExpression'
     }
 }
