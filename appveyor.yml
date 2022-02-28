@@ -4,12 +4,13 @@ image: Visual Studio 2022
 
 cache:
 - C:\Users\appveyor\Documents\PowerShell\Modules\Pester
+- C:\Users\appveyor\Documents\PowerShell\Modules\PowerShellGet
 
 install:
 - pwsh: ./build.ps1 -InstallDependencies
 
 build_script:
-- pwsh: ./build.ps1 -Build
+- pwsh: ./build.ps1 -Build -Package
 
 test_script:
 - pwsh: |
@@ -26,3 +27,7 @@ test_script:
             ErrorAction = 'Continue'
         }
     } -UploadTestResultUri https://ci.appveyor.com/api/testresults/nunit/$env:APPVEYOR_JOB_ID
+
+artifacts:
+- path: ./Build/**PSExpression*.nupkg
+  name: NuGet package
