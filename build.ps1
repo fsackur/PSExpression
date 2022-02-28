@@ -1,3 +1,4 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingCmdletAliases', '')]
 [CmdletBinding()]
 param
 (
@@ -11,11 +12,13 @@ param
 
     [switch]$Build,
 
-    [switch]$Package,
-
     [switch]$Import,
 
     [switch]$Test,
+
+    [switch]$Package,
+
+    [switch]$Publish,
 
     [hashtable]$TestConfig = @{
         Output = @{
@@ -28,6 +31,8 @@ param
 
     [uri]$UploadTestResultUri
 )
+
+$Package = $Package -or $Publish
 
 $ProjectPath  = $PSScriptRoot | Join-Path -ChildPath PSExpression
 $TestPath     = $PSScriptRoot | Join-Path -ChildPath Tests
@@ -127,20 +132,27 @@ if ($Test)
     }
 }
 
-if ($Package)
+if ($Package -or $Publish)
 {
     $Dependencies | ? Name -eq 'PowerShellGet' | % {Import-Module @_ -Global -ErrorAction Stop}
 
-    if (-not (Get-PSResourceRepository 'PSExpression' -ErrorAction Ignore))
+    if ($Publish)
     {
-        Register-PSResourceRepository -Name 'PSExpression' -URL $Destination -Trusted
+        Publish-PSResource -Path $ModuleBase -Repository 'PSGallery' -DestinationPath $Destination
     }
-    try
+    else
     {
-        Publish-PSResource -Path $ModuleBase -Repository 'PSExpression'
-    }
-    finally
-    {
-        Unregister-PSResourceRepository -Name 'PSExpression'
+        if (-not (Get-PSResourceRepository 'PSExpression' -ErrorAction Ignore))
+        {
+            Register-PSResourceRepository -Name 'PSExpression' -URL $Destination -Trusted
+        }
+        try
+        {
+            Publish-PSResource -Path $ModuleBase -Repository 'PSExpression'
+        }
+        finally
+        {
+            Unregister-PSResourceRepository -Name 'PSExpression'
+        }
     }
 }
