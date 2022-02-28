@@ -6,6 +6,8 @@ cache:
 - C:\Users\appveyor\Documents\PowerShell\Modules\Pester
 - C:\Users\appveyor\Documents\PowerShell\Modules\PowerShellGet
 
+skip_branch_with_pr: true
+
 install:
 - pwsh: |
     ./build.ps1 -InstallDependencies
