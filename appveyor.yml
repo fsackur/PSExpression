@@ -35,3 +35,21 @@ test_script:
 artifacts:
 - path: ./Build/**PSExpression*.nupkg
   name: NuGet package
+
+for:
+
+- branches:
+    except:
+      - main
+
+  deploy: off
+
+- branches:
+    only:
+      - main
+
+  configuration: Release
+
+  deploy_script:
+  - pwsh: |
+      ./build.ps1 -Package
