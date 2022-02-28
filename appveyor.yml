@@ -7,10 +7,12 @@ cache:
 - C:\Users\appveyor\Documents\PowerShell\Modules\PowerShellGet
 
 install:
-- pwsh: ./build.ps1 -InstallDependencies
+- pwsh: |
+    ./build.ps1 -InstallDependencies
 
 build_script:
-- pwsh: ./build.ps1 -Build -Package
+- pwsh: |
+    ./build.ps1 -Build
 
 test_script:
 - pwsh: |
