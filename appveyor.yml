@@ -10,7 +10,8 @@ skip_branch_with_pr: true
 
 build_script:
 - pwsh: |
-    ./build.ps1 -Clean -InstallDependencies -Build -Package:$env:APPVEYOR_REPO_TAG_NAME -ErrorAction Stop
+    $ShouldPackage = [bool]$env:APPVEYOR_REPO_TAG_NAME
+    ./build.ps1 -Clean -InstallDependencies -Build -Package:$ShouldPackage -ErrorAction Stop
 
 test_script:
 - pwsh: |
