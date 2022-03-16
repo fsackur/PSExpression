@@ -10,7 +10,7 @@ skip_branch_with_pr: true
 
 build_script:
 - pwsh: |
-    ./build.ps1 -Clean -InstallDependencies -Build -Package -ErrorAction Stop
+    ./build.ps1 -Clean -InstallDependencies -Build -Package:$env:APPVEYOR_REPO_TAG_NAME -ErrorAction Stop
 
 test_script:
 - pwsh: |
@@ -39,3 +39,5 @@ deploy:
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
   artifact: NuGet package
+  on:
+    APPVEYOR_REPO_TAG: true
