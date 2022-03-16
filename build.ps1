@@ -1,3 +1,4 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingCmdletAliases', '')]
 [CmdletBinding()]
 param
 (
@@ -11,11 +12,13 @@ param
 
     [switch]$Build,
 
-    [switch]$Package,
-
     [switch]$Import,
 
     [switch]$Test,
+
+    [switch]$Package,
+
+    [switch]$Publish,
 
     [hashtable]$TestConfig = @{
         Output = @{
@@ -29,8 +32,6 @@ param
     [uri]$UploadTestResultUri
 )
 
-$ProjectPath  = $PSScriptRoot | Join-Path -ChildPath PSExpression
-$TestPath     = $PSScriptRoot | Join-Path -ChildPath Tests
 $Dependencies = (
     @{
         Name = 'Pester'
@@ -42,38 +43,53 @@ $Dependencies = (
     }
 )
 
+$Package = $Package -or $Publish
+$Import = $Import -or $Test
+
+$ProjectPath = $PSScriptRoot | Join-Path -ChildPath PSExpression
+$TestPath    = $PSScriptRoot | Join-Path -ChildPath Tests
+
+$ManifestPath = $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1'
+[version]$ModuleVersion = Get-Content $ManifestPath |
+    Select-String "(?<=^ModuleVersion\s*=\s*(['`"]))(\d+\.)+\d+" |
+    Select-Object -ExpandProperty Matches |
+    Select-Object -ExpandProperty Value -First 1
+
+$UnversionedModuleBase = $Destination | Join-Path -ChildPath PSExpression
+$ModuleBase = $UnversionedModuleBase | Join-Path -ChildPath $ModuleVersion
+$ModulePsd1Path = $ModuleBase | Join-Path -ChildPath 'PSExpression.psd1'
+
 
 if ($Clean)
 {
+    Write-Verbose "Cleaing $BinPath and $Destination..."
     if (Test-Path $BinPath)
     {
-        Remove-Item $BinPath -Recurse -Force -ErrorAction Stop
+        Remove-Item $BinPath -Recurse -Force
     }
 
     if (Test-Path $Destination)
     {
-        Remove-Item $Destination -Recurse -Force -ErrorAction Stop
+        Remove-Item $Destination -Recurse -Force
     }
 }
-$ModuleBase = $Destination | Join-Path -ChildPath 'PSExpression'
-New-Item $BinPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
-New-Item $ModuleBase -ItemType Directory -Force -ErrorAction Stop | Out-Null
+New-Item $ModuleBase -ItemType Directory -Force | Out-Null
 
 
 if ($InstallDependencies)
 {
     $Dependencies | % {
-        if (-not (Import-Module @_ -Global -PassThru -ErrorAction Ignore))
+        if (-not (Get-Module $_.Name -ListAvailable -ErrorAction Ignore | ? Version -ge $_.MinimumVersion))
         {
-            $Params =@{
+            $Params = @{
                 Force              = $true
                 AllowClobber       = $true
                 Repository         = 'PSGallery'
                 SkipPublisherCheck = $true
                 AllowPrerelease    = $_.Name -eq 'PowerShellGet'
             }
-            "Installing $($_.Name)..."
-            Install-Module @_ @Params -ErrorAction Stop
+            Write-Verbose "Installing $($_.Name)..."
+            Install-Module @Params @_
         }
     }
 }
@@ -81,27 +97,37 @@ if ($InstallDependencies)
 
 if ($Build)
 {
+    New-Item $BinPath -ItemType Directory -Force | Out-Null
+
+    Write-Verbose "Building to $BinPath..."
     dotnet build $ProjectPath -o $BinPath /property:GenerateFullPaths=true
     if (-not $?)
     {
         throw "dotnet build failed with exit code $LASTEXITCODE"
     }
+    $DllPath = $BinPath | Join-Path -ChildPath 'PSExpression.dll'
 
-    $ManifestPath = $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1'
-    $ManifestPath | Copy-Item -Destination $ModuleBase
-    $BinPath | Join-Path -ChildPath 'PSExpression.dll' | Copy-Item -Destination $ModuleBase
+    $ManifestPath |
+        Copy-Item -Destination $ModuleBase
+    $ManifestPath |
+        Copy-Item -Destination $UnversionedModuleBase
+    $DllPath |
+        Copy-Item -Destination $ModuleBase
+    $DllPath |
+        Copy-Item -Destination $UnversionedModuleBase
 }
 
 
-if ($Import -or $Test)
+if ($Import)
 {
-    $ModuleBase | Import-Module -Global -Force -ErrorAction Stop
+    "Importing $ModulePsd1Path..."
+    $ModulePsd1Path | Import-Module -Global -Force
 }
 
 
 if ($Test)
 {
-    $Dependencies | ? Name -eq 'Pester' | % {Import-Module @_ -Global -ErrorAction Stop}
+    $Dependencies | ? Name -eq 'Pester' | % {Import-Module @_ -Global}
 
     [object]$TestConfig = New-PesterConfiguration $TestConfig
     $TestConfig.Run.Path = $TestPath
@@ -127,20 +153,30 @@ if ($Test)
     }
 }
 
-if ($Package)
-{
-    $Dependencies | ? Name -eq 'PowerShellGet' | % {Import-Module @_ -Global -ErrorAction Stop}
 
-    if (-not (Get-PSResourceRepository 'PSExpression' -ErrorAction Ignore))
+if ($Package -or $Publish)
+{
+    $Dependencies | ? Name -eq 'PowerShellGet' | % {Import-Module @_ -Global}
+
+    if ($Publish)
     {
-        Register-PSResourceRepository -Name 'PSExpression' -URL $Destination -Trusted
+        Write-Verbose "Publishing to PSGallery..."
+        Publish-PSResource -Path $ModuleBase -Repository 'PSGallery' -DestinationPath $Destination
     }
-    try
+    else
     {
-        Publish-PSResource -Path $ModuleBase -Repository 'PSExpression'
-    }
-    finally
-    {
-        Unregister-PSResourceRepository -Name 'PSExpression'
+        if (-not (Get-PSResourceRepository 'PSExpression' -ErrorAction Ignore))
+        {
+            Register-PSResourceRepository -Name 'PSExpression' -URL $Destination -Trusted
+        }
+        try
+        {
+            Write-Verbose "Packaging to $Destination..."
+            Publish-PSResource -Path $UnversionedModuleBase -Repository 'PSExpression'
+        }
+        finally
+        {
+            Unregister-PSResourceRepository -Name 'PSExpression'
+        }
     }
 }
