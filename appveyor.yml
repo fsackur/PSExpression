@@ -35,8 +35,8 @@ artifacts:
 
 deploy:
 - provider: GitHub
-  tag: $(APPVEYOR_REPO_TAG)
-  description: PSExpression $(APPVEYOR_REPO_TAG)
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  description: PSExpression $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
   artifact: NuGet package
