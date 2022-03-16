@@ -8,13 +8,9 @@ cache:
 
 skip_branch_with_pr: true
 
-install:
-- pwsh: |
-    ./build.ps1 -InstallDependencies
-
 build_script:
 - pwsh: |
-    ./build.ps1 -Build
+    ./build.ps1 -Clean -InstallDependencies -Build -Package -ErrorAction Stop
 
 test_script:
 - pwsh: |
@@ -36,20 +32,10 @@ artifacts:
 - path: ./Build/**PSExpression*.nupkg
   name: NuGet package
 
-for:
-
-- branches:
-    except:
-      - main
-
-  deploy: off
-
-- branches:
-    only:
-      - main
-
-  configuration: Release
-
-  deploy_script:
-  - pwsh: |
-      ./build.ps1 -Package
+deploy:
+- provider: GitHub
+  tag: $(APPVEYOR_REPO_TAG)
+  description: PSExpression $(APPVEYOR_REPO_TAG)
+  auth_token:
+    secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
+  artifact: NuGet package
