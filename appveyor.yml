@@ -53,7 +53,7 @@ before_deploy:
 
     git add *
     git commit -m "Updated version: $env:APPVEYOR_REPO_TAG_NAME"
-    git push
+    git push origin HEAD:main
     git tag -f $env:APPVEYOR_REPO_TAG_NAME
     git push -f --tags
 
