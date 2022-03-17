@@ -20,6 +20,8 @@ param
 
     [switch]$Publish,
 
+    [string]$Version,
+
     [hashtable]$TestConfig = @{
         Output = @{
             Verbosity = 'Detailed'
@@ -49,11 +51,38 @@ $Import = $Import -or $Test
 $ProjectPath = $PSScriptRoot | Join-Path -ChildPath PSExpression
 $TestPath    = $PSScriptRoot | Join-Path -ChildPath Tests
 
+$ModuleVersionPattern = "(?<=^ModuleVersion\s*=\s*(['`"]))(\d+\.)+\d+"
+
 $ManifestPath = $ProjectPath | Join-Path -ChildPath 'PSExpression.psd1'
 [version]$ModuleVersion = Get-Content $ManifestPath |
-    Select-String "(?<=^ModuleVersion\s*=\s*(['`"]))(\d+\.)+\d+" |
+    Select-String $ModuleVersionPattern |
     Select-Object -ExpandProperty Matches |
     Select-Object -ExpandProperty Value -First 1
+
+if (-not $ModuleVersion)
+{
+    throw "Failed to parse module version from '$ManifestPath'."
+}
+
+if ($Version)
+{
+    [version]$Version = $Version -replace '^\D*' -replace '\D*$'    # v1.2.3-alpha => 1.2.3
+    if ($Version -ne $ModuleVersion)
+    {
+        $ManifestContent = Get-Content $ManifestPath
+        $ManifestContent = $ManifestContent -replace $ModuleVersionPattern, $Version
+        $ManifestContent | Out-File $ManifestPath -Encoding utf8
+        $ModuleVersion = $Version
+
+        $CsprojPath = $ProjectPath | Join-Path -ChildPath PSExpression.csproj
+        $CsprojContent = Get-Content $CsprojPath
+        'Version', 'AssemblyVersion', 'FileVersion', 'PackageVersion' | % {
+            $CsprojContent = $CsprojContent -replace "(?<=<$_>).*(?=</$_>)", $Version
+        }
+        $CsprojContent | Out-File $CsprojPath -Encoding utf8
+    }
+}
+
 
 $UnversionedModuleBase = $Destination | Join-Path -ChildPath PSExpression
 $ModuleBase = $UnversionedModuleBase | Join-Path -ChildPath $ModuleVersion
