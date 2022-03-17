@@ -1,4 +1,4 @@
-version: 0.0.{build}
+version: 0.0.4.{build}
 
 image: Visual Studio 2022
 
@@ -14,6 +14,16 @@ skip_commits:
 environment:
   GITHUB_TOKEN:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
+
+init:
+- pwsh: |
+    if ($env:APPVEYOR_REPO_TAG -eq 'true')
+    {
+        [version]$Version = $env:APPVEYOR_REPO_TAG_NAME -replace '^\D*' -replace '\D*$'
+        [int]$Build = $env:APPVEYOR_BUILD_NUMBER
+        $BuildVersion = $Version, ++$Build -join '.'
+        Update-AppVeyorBuild -Version $BuildVersion
+    }
 
 build_script:
 - pwsh: |

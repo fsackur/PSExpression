@@ -85,6 +85,11 @@ if ($NewVersion)
             $CsprojContent = $CsprojContent -replace "(?<=<$_>).*(?=</$_>)", $NewVersion
         }
         $CsprojContent | Out-File $CsprojPath -Encoding utf8
+
+        $AppveyorPath = $PSScriptRoot | Join-Path -ChildPath appveyor.yml
+        $AppveyorContent = Get-Content $AppveyorPath
+        $AppveyorContent = $AppveyorContent -replace '^version: (\d+\.)+{build}', "version: $NewVersion.{build}"
+        $AppveyorContent | Out-File $AppveyorPath -Encoding utf8
     }
 }
 
