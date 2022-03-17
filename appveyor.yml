@@ -8,6 +8,13 @@ cache:
 
 skip_branch_with_pr: true
 
+skip_commits:
+  author: appveyor
+
+environment:
+  GITHUB_TOKEN:
+    secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
+
 build_script:
 - pwsh: |
     $ShouldPackage = [bool]$env:APPVEYOR_REPO_TAG_NAME
@@ -32,6 +39,23 @@ test_script:
 artifacts:
 - path: ./Build/**PSExpression*.nupkg
   name: NuGet package
+
+# If we updated the version in thye build step
+before_deploy:
+- pwsh: |
+    if (-not (git status -s)) {return}
+
+    git config user.name appveyor
+    git config user.email appveyor@dustyfox.uk
+    git config core.autocrlf false
+    git config credential.helper store
+    "https://$($env:GITHUB_TOKEN):x-oauth-basic@github.com`n" | Set-Content $HOME/.git-credentials -NoNewline
+
+    git add *
+    git commit -m "Updated version: $env:APPVEYOR_REPO_TAG_NAME"
+    git push
+    git tag -f $env:APPVEYOR_REPO_TAG_NAME
+    git push -f --tags
 
 deploy:
 - provider: GitHub
